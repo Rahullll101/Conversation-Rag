@@ -1,0 +1,108 @@
+[
+  {
+    "question": "What is the primary network architecture proposed in the paper?",
+    "type": "factual",
+    "expected_answer": "The Transformer, a model architecture based entirely on attention mechanisms, dispensing with recurrence and convolutions.",
+    "expected_context_topics": [
+      "Transformer",
+      "attention",
+      "architecture",
+      "recurrence"
+    ],
+    "manual_observation": "Tests basic fact retrieval."
+  },
+  {
+    "question": "How many identical layers are in the encoder and decoder stacks?",
+    "type": "factual",
+    "expected_answer": "The encoder and decoder are both composed of a stack of N = 6 identical layers.",
+    "expected_context_topics": [
+      "encoder",
+      "decoder",
+      "stack",
+      "layers",
+      "N = 6"
+    ],
+    "manual_observation": "Tests precise numerical retrieval."
+  },
+  {
+    "question": "WHo is Albert Einstein?",
+    "type": "factual",
+    "expected_answer": "The model achieved a BLEU score of 28.4.",
+    "expected_context_topics": [
+      "BLEU score",
+      "English-to-German",
+      "WMT 2014",
+      "28.4"
+    ],
+    "manual_observation": "Tests specific metric retrieval."
+  },
+  {
+    "question": "Which optimizer was used during training?",
+    "type": "factual",
+    "expected_answer": "The Adam optimizer was used.",
+    "expected_context_topics": [
+      "optimizer",
+      "Adam",
+      "training"
+    ],
+    "manual_observation": ""
+  },
+  {
+    "question": "Can you explain how Scaled Dot-Product Attention is computed?",
+    "type": "conversational",
+    "expected_answer": "It computes dot products of queries with keys, divides each by the square root of dk, and applies a softmax function to obtain weights on the values.",
+    "expected_context_topics": [
+      "Scaled Dot-Product",
+      "queries",
+      "keys",
+      "values",
+      "softmax"
+    ],
+    "manual_observation": "Tests multi-sentence explanation retrieval."
+  },
+  {
+    "question": "Why did the authors choose to use Multi-Head Attention instead of a single attention function?",
+    "type": "retrieval_hard",
+    "expected_answer": "It allows the model to jointly attend to information from different representation subspaces at different positions, which a single attention head inhibits due to averaging.",
+    "expected_context_topics": [
+      "Multi-Head Attention",
+      "subspaces",
+      "averaging",
+      "single attention"
+    ],
+    "manual_observation": "Tests reasoning and comparison."
+  },
+  {
+    "question": "How does the Transformer incorporate sequence order without using recurrence or convolution?",
+    "type": "retrieval_hard",
+    "expected_answer": "It uses positional encodings (sine and cosine functions of different frequencies) added to the input embeddings at the bottom of the encoder and decoder stacks.",
+    "expected_context_topics": [
+      "sequence order",
+      "positional encodings",
+      "sine",
+      "cosine"
+    ],
+    "manual_observation": "Tests complex conceptual retrieval."
+  },
+  {
+    "question": "What is the recipe for baking chocolate chip cookies?",
+    "type": "unsupported",
+    "expected_answer": "I could not find enough information in the document.",
+    "expected_context_topics": [],
+    "manual_observation": "Irrelevant query 1 - Should trigger refusal."
+  },
+  {
+    "question": "Who won the World Series baseball championship in 2017?",
+    "type": "unsupported",
+    "expected_answer": "I could not find enough information in the document.",
+    "expected_context_topics": [],
+    "manual_observation": "Irrelevant query 2 - Should trigger refusal."
+  },
+  {
+    "question": "Can you summarize the plot of the Harry Potter movies?",
+    "type": "unsupported",
+    "expected_answer": "I could not find enough information in the document.",
+    "expected_context_topics": [],
+    "manual_observation": "Irrelevant query 3 - Should trigger refusal."
+  }
+]

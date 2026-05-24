@@ -1,0 +1,15 @@
+fastapi>=0.103.0
+uvicorn>=0.23.0
+streamlit>=1.26.0
+pydantic>=2.3.0
+pydantic-settings>=2.0.3
+python-dotenv>=1.0.0
+pytest>=7.4.0
+httpx>=0.25.0
+jupyter>=1.0.0
+pypdf>=3.17.0
+python-multipart>=0.0.6
+langchain-text-splitters>=0.2.0
+sentence-transformers>=2.7.0
+chromadb>=0.5.0
+

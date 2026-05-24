@@ -1,0 +1,47 @@
+# Ignore notebooks and tests folders
+notebooks/
+tests/
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Local Data Storage & Databases (CRITICAL)
+data/
+data/uploads/*
+data/chroma_db/*
+!data/.gitkeep
+!data/uploads/.gitkeep
+!data/chroma_db/.gitkeep
+
+# Evaluation Results (Do not push large generated reports)
+evaluation/results/*
+!evaluation/results/.gitkeep
+!evaluation/sample_queries.json
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
