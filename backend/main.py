@@ -40,6 +40,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Include API routes
 app.include_router(upload.router)
 app.include_router(process.router)
 app.include_router(query.router)
@@ -49,7 +50,7 @@ app.include_router(chat.router)
 @app.get("/")
 async def root():
     return {
-        "message": "RAG Backend Running Successfully"
+        "message": "Document Q&A RAG System API is running successfully"
     }
 
 
