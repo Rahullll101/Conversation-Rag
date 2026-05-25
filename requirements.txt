@@ -1,15 +1,27 @@
 fastapi>=0.103.0
 uvicorn>=0.23.0
+gunicorn>=21.2.0
+
 streamlit>=1.26.0
+
 pydantic>=2.3.0
 pydantic-settings>=2.0.3
+
 python-dotenv>=1.0.0
+python-multipart>=0.0.6
+
 pytest>=7.4.0
 httpx>=0.25.0
-# jupyter>=1.0.0
+
 pypdf>=3.17.0
-python-multipart>=0.0.6
+
 langchain-text-splitters>=0.2.0
-sentence-transformers>=2.7.0
+
+sentence-transformers==2.5.1
+transformers==4.38.2
+tokenizers==0.15.2
+
 chromadb==0.5.5
-# protobuf==3.20.3
+
+protobuf==3.20.3
+pysqlite3-binary==0.5.3
