@@ -1,11 +1,36 @@
 import streamlit as st
 import httpx
 import json
+import os
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+if load_dotenv:
+    load_dotenv()
 
 # =========================
 # CONFIG
 # =========================
-API_BASE_URL = "https://rag-backend-student-d7bqgvbxhuacaac2.southindia-01.azurewebsites.net"
+DEFAULT_API_BASE_URL = "http://127.0.0.1:8000"
+
+
+def get_api_base_url() -> str:
+    try:
+        secret_url = st.secrets.get("API_BASE_URL", "")
+    except Exception:
+        secret_url = ""
+
+    return (
+        os.getenv("API_BASE_URL")
+        or secret_url
+        or DEFAULT_API_BASE_URL
+    ).rstrip("/")
+
+
+API_BASE_URL = get_api_base_url()
 
 st.set_page_config(
     page_title="Document Q&A RAG System",
@@ -225,7 +250,7 @@ with col2:
 
     if st.session_state.session_id:
 
-        if st.button("🔄 New Chat", use_container_width=True):
+        if st.button("New Chat", use_container_width=True):
 
             try:
                 httpx.delete(

@@ -115,12 +115,12 @@ project/
 ## 12. Phase 7: Evaluation, Quality Analysis, and Optimization
 - **Added Files**:
   - `evaluation/sample_queries.json`: Lightweight evaluation dataset containing factual, conversational, ambiguous, and unsupported queries.
-  - `backend/schemas/evaluation.py`: Strongly typed schema for `EvaluationReport`, `EvaluationEntry`, and `RagasMetrics`.
-  - `backend/utils/evaluation.py`: Wrapper for computing RAGAS metrics with a deterministic mock fallback for testing without API keys.
+  - `backend/schemas/evaluation.py`: Strongly typed schema for `EvaluationReport`, `EvaluationEntry`, and `EvaluationMetrics`.
+  - `backend/utils/evaluation.py`: Wrapper for computing evaluation metrics with a deterministic mock fallback for testing without API keys.
   - `backend/services/evaluation_service.py`: Evaluation orchestrator that runs queries against the pipeline completely isolated from the standard route, saving `.json` and `.csv` reports to `evaluation/results/`.
-  - `tests/test_evaluation.py`, `test_ragas_metrics.py`, `test_reranking_effectiveness.py`: Validates the pipeline logic and mock scores.
+  - `tests/test_evaluation.py`, `test_evaluation_metrics.py`, `test_reranking_effectiveness.py`: Validates the pipeline logic and mock scores.
 - **Design Decisions**:
-  - **Why RAGAS**: Lexical metrics (BLEU/ROUGE) are poor judges of semantic grounding. RAGAS was selected to explicitly evaluate hallucination and retrieval relevance (Faithfulness, Answer Relevancy). It is kept optional (`ragas_enabled=False`) by default to prevent API charges during offline dev.
+  - **Why Evaluation Frameworks**: Lexical metrics (BLEU/ROUGE) are poor judges of semantic grounding. This was selected to explicitly evaluate hallucination and retrieval relevance (Faithfulness, Answer Relevancy). It is kept optional (`evaluation_enabled=False`) by default to prevent API charges during offline dev.
   - **Evaluation Isolation**: `evaluation_service.py` calls existing service layers without modifying them, ensuring the production flow is untouched.
   - **Failure Tracking**: The system tracks explicit retrieval failures (e.g., `no_chunks_retrieved` vs `reranker_removed_relevant_chunk`) to make debugging interpretable.
   - **Source Snapshots**: Keeping `top_k_before_rerank` and `top_k_after_rerank` in the evaluation JSON enables detailed reranking quality analysis later.
@@ -142,7 +142,7 @@ project/
 - **Native LLM-as-a-Judge Evaluation Framework**:
   - Decoupled the Streamlit dashboard from the backend evaluation logic by creating a dedicated `POST /evaluate/{session_id}` API endpoint. This completely resolved Streamlit's aggressive module caching bugs.
   - Fully replaced the "fake" mock variance evaluation scripts with a **Native LLM Judge** in `backend/utils/evaluation.py`. 
-  - Designed a highly strict, few-shot prompt that instructs `gpt-oss-120b` to act as an LLM judge. The judge reads the retrieved context, the expected answer, and its own generated answer, and mathematically outputs JSON scores for **Faithfulness** and **Answer Relevancy**. This perfectly mimics the advanced `ragas` library behavior entirely natively, completely bypassing the need for paid OpenAI API keys.
+  - Designed a highly strict, few-shot prompt that instructs `gpt-oss-120b` to act as an LLM judge. The judge reads the retrieved context, the expected answer, and its own generated answer, and mathematically outputs JSON scores for **Faithfulness** and **Answer Relevancy**. This perfectly mimics advanced evaluation libraries' behavior entirely natively, completely bypassing the need for paid OpenAI API keys.
 
 ## 14. Phase 8: Project Finalization and Production Readiness
 - **Documentation Overhaul**:

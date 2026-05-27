@@ -1,6 +1,5 @@
 import logging
 from typing import List
-from sentence_transformers import SentenceTransformer
 from backend.config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -12,6 +11,7 @@ def get_model():
     global _model
     if _model is None:
         logger.info(f"Loading embedding model: {settings.embedding_model_name}")
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer(settings.embedding_model_name)
     return _model
 

@@ -29,7 +29,9 @@ async def process_upload(file: UploadFile) -> UploadResponse:
         session_dir = create_session_directory(settings.upload_dir, session_id)
         
         # 3. Save original file
-        original_filename = file.filename or "unknown_file"
+        original_filename = Path(file.filename or "unknown_file").name
+        if not original_filename:
+            original_filename = "unknown_file"
         original_file_path = session_dir / original_filename
         save_file(original_file_path, file_bytes)
 

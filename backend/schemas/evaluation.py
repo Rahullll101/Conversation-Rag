@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional, Any
 from pydantic import BaseModel
 
-class RagasMetrics(BaseModel):
+class EvaluationMetrics(BaseModel):
     faithfulness: float = 0.0
     answer_relevancy: float = 0.0
     context_precision: float = 0.0
@@ -17,11 +17,11 @@ class EvaluationEntry(BaseModel):
     retrieval_failure_reason: Optional[str] = None
     top_k_before_rerank: List[Dict[str, Any]]
     top_k_after_rerank: List[Dict[str, Any]]
-    metrics: RagasMetrics
+    metrics: EvaluationMetrics
     manual_observation: Optional[str] = None
 
 class EvaluationReport(BaseModel):
     timestamp: str
     total_queries: int
-    aggregate_metrics: RagasMetrics
+    aggregate_metrics: EvaluationMetrics
     entries: List[EvaluationEntry]

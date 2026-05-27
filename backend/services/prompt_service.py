@@ -5,7 +5,7 @@ from backend.schemas.pipeline import RerankedChunk
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT = r"""
 
 # PERSONA & OBJECTIVE
 
@@ -317,30 +317,89 @@ def build_prompt(
     Construct the final prompt enforcing strict grounding rules.
     """
     logger.info("Constructing prompt from rewritten query, history, and reranked chunks.")
-    
-    prompt = f"{SYSTEM_PROMPT}\n\n"
-    
-    # 1. Inject Conversation Memory (if applicable)
-    # We only inject the history if there's actually meaningful content.
+
+    history_block = _format_history(chat_history)
+    context_block = _format_context(reranked_chunks)
+
+    if settings.llm_orchestration.lower() == "langchain":
+        try:
+            prompt = _render_with_langchain_template(
+                history_block=history_block,
+                context_block=context_block,
+                rewritten_query=rewritten_query,
+            )
+        except ImportError:
+            logger.warning("LangChain is not installed; using legacy prompt formatting.")
+            prompt = _render_legacy_prompt(
+                history_block=history_block,
+                context_block=context_block,
+                rewritten_query=rewritten_query,
+            )
+    else:
+        prompt = _render_legacy_prompt(
+            history_block=history_block,
+            context_block=context_block,
+            rewritten_query=rewritten_query,
+        )
+
+    if settings.prompt_debug_mode:
+        logger.info(f"DEBUG PROMPT:\n{prompt}")
+
+    return prompt
+
+
+def _format_history(chat_history: List[Dict[str, str]]) -> str:
     if chat_history and settings.memory_max_turns > 0:
-        prompt += "--- CONVERSATION HISTORY ---\n"
+        history = "--- CONVERSATION HISTORY ---\n"
         for msg in chat_history:
             role = "User" if msg["role"] == "user" else "Assistant Context"
-            prompt += f"{role}: {msg['content']}\n"
-        prompt += "\n"
-        
-    # 2. Inject Reranked Context
-    prompt += "--- RETRIEVED CONTEXT ---\n"
+            history += f"{role}: {msg['content']}\n"
+        return history + "\n"
+
+    return ""
+
+
+def _format_context(reranked_chunks: List[RerankedChunk]) -> str:
+    context = "--- RETRIEVED CONTEXT ---\n"
     limit = min(settings.source_chunk_limit, len(reranked_chunks))
     for i in range(limit):
         chunk = reranked_chunks[i]
-        prompt += f"Chunk {i+1}:\n{chunk.text}\n\n"
-        
-    # 3. Final Query
-    prompt += f"--- QUESTION ---\n{rewritten_query}\n\n"
-    prompt += "Answer:"
-    
-    if settings.prompt_debug_mode:
-        logger.info(f"DEBUG PROMPT:\n{prompt}")
-        
-    return prompt
+        context += f"Chunk {i+1}:\n{chunk.text}\n\n"
+    return context
+
+
+def _render_with_langchain_template(
+    history_block: str,
+    context_block: str,
+    rewritten_query: str,
+) -> str:
+    from langchain_core.prompts import PromptTemplate
+
+    template = PromptTemplate.from_template(
+        "{system_prompt}\n\n"
+        "{history_block}"
+        "{context_block}"
+        "--- QUESTION ---\n"
+        "{rewritten_query}\n\n"
+        "Answer:"
+    )
+    return template.format(
+        system_prompt=SYSTEM_PROMPT,
+        history_block=history_block,
+        context_block=context_block,
+        rewritten_query=rewritten_query,
+    )
+
+
+def _render_legacy_prompt(
+    history_block: str,
+    context_block: str,
+    rewritten_query: str,
+) -> str:
+    return (
+        f"{SYSTEM_PROMPT}\n\n"
+        f"{history_block}"
+        f"{context_block}"
+        f"--- QUESTION ---\n{rewritten_query}\n\n"
+        "Answer:"
+    )

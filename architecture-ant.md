@@ -11,13 +11,13 @@ Welcome to the documentation for the Conversational Document Q&A RAG (Retrieval-
 
 This system answers user questions using only the information found in a set of provided PDF documents. The process consists of:
 
-- PDF/TXT loading through LlamaIndex, with a safe extracted-text fallback
-- LlamaIndex node parsing/chunking
-- LlamaIndex indexing into isolated ChromaDB collections
+- PDF loading and text extraction
+- Recursive character semantic chunking
+- Embedding generation and isolated vector storage (ChromaDB)
 - Conversational query rewriting for ambiguous pronouns
-- LlamaIndex retrieval and Cross-Encoder precision reranking
-- LangChain prompt construction and OpenRouter LLM orchestration
-- LLM streaming strictly over retrieved chunks
+- Semantic retrieval (L2 Distance) and Cross-Encoder precision reranking
+- Prompt construction with retrieved context
+- LLM streaming strictly over the retrieved chunks
 
 ## System Architecture
 
@@ -25,12 +25,12 @@ This system answers user questions using only the information found in a set of 
 flowchart TD
     A[User Query] 
         --> B[Query Rewrite]
-        --> C[LlamaIndex Retriever]
-        --> D[ChromaDB Session Collection]
+        --> C[Query Embedding]
+        --> D[Vector Database ChromaDB]
         --> E[Top-K Relevant Chunks]
         --> F[Cross-Encoder Reranker]
-        --> G[LangChain Prompt Template]
-        --> H[OpenRouter LLM openai/gpt-oss-120b:free]
+        --> G[Prompt Construction]
+        --> H[LLM openai/gpt-oss-120b:free]
         --> I[Streaming Answer + Source Attribution]
 ```
 
@@ -47,16 +47,110 @@ This step-by-step workflow visualizes the dual upload and chat pipeline:
 flowchart TD
     S[Upload PDF] 
         --> T[Extract Text & Metadata]
-        --> U[LlamaIndex Loader + Node Parser]
-        --> V[LlamaIndex Embedding Index]
-        --> W[Store in Isolated ChromaDB Collection]
+        --> U[Recursive Semantic Chunking]
+        --> V[Generate Embeddings]
+        --> W[Store in Isolated DB Collection]
     X[User Chat Message] 
         --> Y[Rewrite Query using Memory]
-        --> Z[LlamaIndex Retrieve Similar Chunks]
+        --> Z[Retrieve Similar Chunks]
         --> AA[Rescore with Cross-Encoder]
-        --> AB[LangChain + OpenRouter Stream Answer]
+        --> AB[LLM Streams Answer]
         --> AC[Return Answer + Source Percents]
 ```
+
+---
+
+# 🧩 Backend Code Architecture (Simple Explanation)
+
+Here is a simplified diagram of how the backend code is organized and how the different folders talk to each other. Think of it like a restaurant!
+
+```mermaid
+graph TD
+    A(["User Action via Website"]) --> B["Routes (The Waiters)"]
+    
+    B --> C["Services (The Chefs)"]
+    B -. checks data .-> D["Schemas (The Bouncers)"]
+    
+    C --> E["Database (The Pantry)"]
+    C --> F["AI Model (The Head Chef)"]
+    C -. uses .-> G["Utils (The Kitchen Tools)"]
+```
+
+### What does each folder do?
+
+1. **Routes (`backend/routes/`) - *The Waiters***
+   These files receive your requests (like "Here is a PDF" or "Answer my question") and direct them to the right "chef" in the kitchen to handle the job.
+   
+2. **Services (`backend/services/`) - *The Chefs***
+   This is where the actual work happens. Instead of one giant file doing everything, the work is split up:
+   - One chef handles slicing the PDF into pieces (`chunking_service.py`).
+   - One chef organizes the library and database (`vector_store_service.py`).
+   - One chef talks to the AI to get the final answer (`llm_service.py`).
+   
+3. **Schemas (`backend/schemas/`) - *The Bouncers***
+   These files check the data coming in and going out to make sure it's correct. If someone tries to ask a question but forgets to include their ID, the schema will reject it immediately.
+   
+4. **Utils (`backend/utils/`) - *The Kitchen Tools***
+   These are small, reusable tools that the chefs use to make their jobs easier (like formatting text or extracting words from a page).
+
+---
+
+## 📄 1. Document Processing Flow (When you upload a PDF)
+
+When you upload a PDF, here is the exact step-by-step journey of what happens behind the scenes:
+
+```mermaid
+graph TD
+    User([User Uploads PDF]) --> RoutesUpload[1. Upload Route]
+    RoutesUpload --> SvcUpload[2. Upload Service]
+    SvcUpload --> UtilsExtract[3. Extraction Util]
+    UtilsExtract --> SvcUpload
+    
+    User2([User Triggers Processing]) --> RoutesProcess[4. Process Route]
+    RoutesProcess --> SvcChunk[5. Chunking Service]
+    RoutesProcess --> SvcEmbed[6. Embedding Service]
+    RoutesProcess --> SvcVector[7. Vector Store Service]
+    
+    SvcVector -. saves to .-> ChromaDB[(Database)]
+```
+
+**Simple Explanation:**
+1. You upload the PDF. The **Upload Route** receives it.
+2. The **Upload Service** uses an **Extraction Util** to read all the raw text out of the PDF.
+3. Once the text is extracted, the **Process Route** takes over.
+4. The **Chunking Service** slices the huge wall of text into smaller, readable paragraphs.
+5. The **Embedding Service** turns those paragraphs into numbers (so the computer can understand the meaning).
+6. The **Vector Store Service** saves those numbers safely in the **Database**.
+
+---
+
+## 💬 2. Chat Generation Flow (When you ask a question)
+
+When you ask a question, the backend goes through this exact process to get your answer:
+
+```mermaid
+graph TD
+    User([User Asks Question]) --> RoutesChat[1. Chat Route]
+    
+    RoutesChat --> SvcMem[2. Memory Service]
+    RoutesChat --> SvcRewrite[3. Rewrite Service]
+    RoutesChat --> SvcRet[4. Retrieval Service]
+    RoutesChat --> SvcRerank[5. Rerank Service]
+    RoutesChat --> SvcPrompt[6. Prompt Service]
+    RoutesChat --> SvcLLM[7. LLM Service]
+    
+    SvcRet -. searches .-> ChromaDB[(Database)]
+    SvcLLM -. talks to .-> AI([AI Brain])
+```
+
+**Simple Explanation:**
+1. You ask a question. The **Chat Route** receives it.
+2. The **Memory Service** checks what you were talking about previously (so the AI remembers context).
+3. The **Rewrite Service** rewrites your question if it's confusing (e.g., changing "what is it?" to "what is the policy?").
+4. The **Retrieval Service** searches the **Database** for the most relevant paragraphs from your PDF.
+5. The **Rerank Service** double-checks those paragraphs and picks the absolute best ones.
+6. The **Prompt Service** bundles your question and the best paragraphs together like an instruction manual.
+7. Finally, the **LLM Service** hands the instruction manual to the **AI Brain**, gets the answer, and streams it back to your screen!
 
 ---
 
@@ -68,13 +162,11 @@ flowchart TD
 | `requirements.txt`                   | Lists required Python dependencies                             |
 | `backend/config/settings.py`         | Pydantic environment loaders and configuration                 |
 | `backend/routes/`                    | FastAPI endpoint controllers (chat, process, upload)           |
-| `backend/services/llama_index_service.py`| LlamaIndex loading, node parsing, Chroma indexing, and retrieval |
 | `backend/services/chunking_service.py`| Splits documents into semantically meaningful chunks           |
 | `backend/services/embedding_service.py`| Embedding model loader and semantic generation              |
-| `backend/services/retrieval_service.py`| Retrieval adapter: LlamaIndex first, legacy fallback if enabled |
+| `backend/services/retrieval_service.py`| Executes L2 semantic search against ChromaDB                |
 | `backend/services/rerank_service.py` | Rescores chunks using Cross-Encoders                         |
-| `backend/services/prompt_service.py` | LangChain prompt template adapter with legacy formatting fallback |
-| `backend/services/llm_service.py`    | LangChain OpenRouter streaming, with OpenAI SDK fallback        |
+| `backend/services/llm_service.py`    | Streaming Text Generation for the retrieved context            |
 | `backend/utils/evaluation.py`        | Native LLM-as-a-judge strict grading prompts                   |
 | `frontend/app.py`                    | Streamlit application entry point and chat UI                  |
 
@@ -86,13 +178,10 @@ This file stores your OpenRouter API token, required for accessing hosted LLMs.
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-...
-RAG_ENGINE=llamaindex
-LLM_ORCHESTRATION=langchain
-API_BASE_URL=http://127.0.0.1:8000
 ```
 
 - **Purpose:** Securely store credentials.
-- **Usage:** Loaded by `pydantic-settings` in `backend/config/settings.py`, and by the Streamlit frontend for `API_BASE_URL`.
+- **Usage:** Loaded by `pydantic-settings` in `backend/config/settings.py`, required for LLM endpoint access.
 
 ---
 
@@ -266,7 +355,7 @@ The system is fully decoupled. The backend operates as a pure REST API.
         }
     ],
     "bodyType": "json",
-    "requestBody": "{\n  \"session_id\": \"uuid-1234\",\n  \"query\": \"What is the loan approval process?\"\n}",
+    "requestBody": "{\n  \"session_id\": \"uuid-1234\",\n  \"message\": \"What is the loan approval process?\"\n}",
     "responses": {
         "200": {
             "description": "Streaming Chunked Response",
@@ -334,3 +423,81 @@ If a query is out-of-domain (e.g., "Explain quantum entanglement" when not prese
 > "I could not find enough information in the document."
 
 This confirms that the system is robust against hallucination and only answers from the provided knowledge base. The Native LLM Judge will automatically grade this refusal with a `1.0` for Faithfulness.
+
+
+
+
+
+# RAG Backend Architecture Overview
+
+The backend is structured using a clean separation of concerns, typical of a well-organized FastAPI application. Here is how all the files connect together.
+
+## 1. Directory Structure
+The `backend/` folder is divided into specific layers:
+
+- **`main.py`**: The entry point. It initializes the FastAPI app and registers all the API endpoints (routers).
+- **`routes/`**: Contains the API endpoints exposed to the user. These receive requests and pass them down to the services.
+- **`services/`**: Contains the core business logic. This is where the actual RAG operations (chunking, embedding, querying LLMs) happen.
+- **`schemas/`**: Pydantic models that define the shape of incoming requests and outgoing responses (data validation).
+- **`utils/`**: Helper functions used by services (e.g., specific string manipulation or formatting).
+- **`config/`**: Contains configuration and environment variable settings (`settings.py`).
+
+## 2. Document Processing Flow
+
+When a user uploads a document, the flow traverses these files:
+
+```mermaid
+graph TD
+    User([User Uploads PDF]) --> RoutesUpload[routes/upload.py]
+    RoutesUpload --> SvcUpload[services/upload_service.py]
+    SvcUpload --> UtilsExtract[utils/extraction.py]
+    UtilsExtract --> SvcUpload
+    
+    User2([User Triggers Processing]) --> RoutesProcess[routes/process.py]
+    RoutesProcess --> SvcChunk[services/chunking_service.py]
+    RoutesProcess --> SvcEmbed[services/embedding_service.py]
+    RoutesProcess --> SvcVector[services/vector_store_service.py]
+    
+    SvcChunk -. uses .-> UtilsChunk[utils/chunking.py]
+    SvcVector -. connects to .-> ChromaDB[(ChromaDB)]
+```
+
+1. **Upload**: `routes/upload.py` accepts the PDF. It calls `services/upload_service.py`, which uses `utils/extraction.py` to extract text from the PDF.
+2. **Process**: `routes/process.py` takes the extracted text and orchestrates:
+   - **Chunking**: Calls `services/chunking_service.py` (which uses LangChain).
+   - **Embedding**: Calls `services/embedding_service.py` (which uses SentenceTransformers).
+   - **Storage**: Calls `services/vector_store_service.py` to save the embeddings into ChromaDB.
+
+## 3. Chat / Generation Flow
+
+When a user asks a question, it triggers the most complex pipeline in the app:
+
+```mermaid
+graph TD
+    User([User Asks Question]) --> SchemaReq[schemas/pipeline.py]
+    SchemaReq --> RoutesChat[routes/chat.py]
+    
+    RoutesChat --> SvcMem[services/memory_service.py]
+    RoutesChat --> SvcRewrite[services/query_rewrite_service.py]
+    RoutesChat --> SvcRet[services/retrieval_service.py]
+    RoutesChat --> SvcRerank[services/rerank_service.py]
+    RoutesChat --> SvcPrompt[services/prompt_service.py]
+    RoutesChat --> SvcLLM[services/llm_service.py]
+    
+    SvcRet -. queries .-> ChromaDB[(ChromaDB)]
+    SvcRet -. generates embedding for query .-> SvcEmbed2[services/embedding_service.py]
+    SvcLLM -. calls .-> LLMAPI([OpenRouter API])
+```
+
+1. **Validation**: The request is validated against `schemas/pipeline.py`.
+2. **Endpoint**: `routes/chat.py` receives the request and acts as the orchestrator.
+3. **Memory**: It fetches chat history from `services/memory_service.py`.
+4. **Rewrite**: It calls `services/query_rewrite_service.py` to rephrase the question based on chat history.
+5. **Retrieve**: It uses `services/retrieval_service.py` to fetch relevant chunks from ChromaDB.
+6. **Rerank**: It refines the chunks using `services/rerank_service.py`.
+7. **Prompt**: It builds the final text prompt using `services/prompt_service.py`.
+8. **Generation**: It sends the prompt to the AI model via `services/llm_service.py` and streams the response back to the user.
+
+## Summary
+
+In short: **Routes** orchestrate the flow, **Services** do the heavy lifting, **Schemas** ensure data is correct, and everything is tied together in `main.py`.

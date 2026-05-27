@@ -1,5 +1,4 @@
 import logging
-from pypdf import PdfReader
 import io
 
 logger = logging.getLogger(__name__)
@@ -7,6 +6,8 @@ logger = logging.getLogger(__name__)
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """Extracts text from PDF bytes using pypdf gracefully."""
     try:
+        from pypdf import PdfReader
+
         reader = PdfReader(io.BytesIO(file_bytes))
         text_pages = []
         for page in reader.pages:

@@ -1,10 +1,10 @@
 import logging
 from backend.config.settings import settings
-from backend.schemas.evaluation import RagasMetrics
+from backend.schemas.evaluation import EvaluationMetrics
 
 logger = logging.getLogger(__name__)
 
-def compute_ragas_metrics(question: str, generated_answer: str, expected_answer: str, context_chunks: list) -> RagasMetrics:
+def compute_evaluation_metrics(question: str, generated_answer: str, expected_answer: str, context_chunks: list) -> EvaluationMetrics:
     """
     Computes metrics using the Native LLM Judge for a given generation.
     """
@@ -12,10 +12,10 @@ def compute_ragas_metrics(question: str, generated_answer: str, expected_answer:
         logger.info("Native LLM Judge computation triggered.")
         return _llm_compute_metrics(question, generated_answer, expected_answer, context_chunks)
     except Exception as e:
-        logger.error(f"Failed to compute RAGAS metrics: {e}")
-        return RagasMetrics()
+        logger.error(f"Failed to compute evaluation metrics: {e}")
+        return EvaluationMetrics()
 
-def _llm_compute_metrics(question: str, generated_answer: str, expected_answer: str, context_chunks: list) -> RagasMetrics:
+def _llm_compute_metrics(question: str, generated_answer: str, expected_answer: str, context_chunks: list) -> EvaluationMetrics:
     """
     Uses the configured LLM to grade the answer using a strict JSON prompt.
     """
@@ -23,7 +23,7 @@ def _llm_compute_metrics(question: str, generated_answer: str, expected_answer: 
     import json
     import re
     
-    metrics = RagasMetrics()
+    metrics = EvaluationMetrics()
     
     # Fast path for refusals
     if generated_answer == "I could not find enough information in the document.":

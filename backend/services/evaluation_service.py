@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 from backend.config.settings import settings
-from backend.schemas.evaluation import EvaluationEntry, EvaluationReport, RagasMetrics
+from backend.schemas.evaluation import EvaluationEntry, EvaluationReport, EvaluationMetrics
 from backend.services.retrieval_service import retrieve_chunks
 from backend.services.rerank_service import rerank_chunks
 from backend.services.prompt_service import build_prompt
 from backend.services.llm_service import generate_answer
 from backend.schemas.query import RetrievedChunk
-from backend.utils.evaluation import compute_ragas_metrics
+from backend.utils.evaluation import compute_evaluation_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def run_evaluation_pipeline(session_id: str) -> EvaluationReport:
         hallucination_refused = (answer == "I could not find enough information in the document.")
         
         # 4. Evaluate
-        metrics = compute_ragas_metrics(query, answer, expected, limited_chunks)
+        metrics = compute_evaluation_metrics(query, answer, expected, limited_chunks)
         
         entry = EvaluationEntry(
             timestamp=timestamp,
@@ -99,7 +99,7 @@ def run_evaluation_pipeline(session_id: str) -> EvaluationReport:
         entries.append(entry)
         
     # Aggregate Metrics
-    agg_metrics = RagasMetrics()
+    agg_metrics = EvaluationMetrics()
     if entries:
         agg_metrics.faithfulness = sum(e.metrics.faithfulness for e in entries) / len(entries)
         agg_metrics.answer_relevancy = sum(e.metrics.answer_relevancy for e in entries) / len(entries)
@@ -119,7 +119,7 @@ def run_evaluation_pipeline(session_id: str) -> EvaluationReport:
 def _persist_reports(report: EvaluationReport):
     """Save JSON and CSV reports."""
     # Save JSON
-    json_path = RESULTS_DIR / "ragas_report.json"
+    json_path = RESULTS_DIR / "evaluation_report.json"
     with open(json_path, "w", encoding="utf-8") as f:
         f.write(report.model_dump_json(indent=2))
         
