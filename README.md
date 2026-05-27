@@ -52,7 +52,9 @@ Retrieval-Augmented Generation (RAG) solves this by retrieving the exact paragra
 
 The overarching design philosophy of this system is the strict separation of concerns.
 
-![System Architecture](docs/architure.png)
+![System Architecture]
+<img width="1536" height="1024" alt="WhatsApp Image 2026-05-25 at 21 26 06" src="https://github.com/user-attachments/assets/6646ce35-9ab4-4d8f-988c-c1f66a3c02f0" />
+
 *Caption: The dual-phase architecture illustrating the isolated Document Upload Pipeline vs the Conversational Chat Pipeline.*
 
 ### High-Level Architecture Flowchart
