@@ -1,336 +1,252 @@
-# Conversational Document Q&A RAG System Documentation
+<div align="center">
+  <h1> Conversational RAG Engine</h1>
+  <p><b>Retrieval-Augmented Generation System with Hybrid Orchestration</b></p>
 
-Welcome to the documentation for the Conversational Document Q&A RAG (Retrieval-Augmented Generation) System. This solution implements a robust, production-aligned pipeline that combines semantic retrieval, chunking, Cross-Encoder reranking, and LLM-based streaming, with a strict focus on grounded, explainable answers.
+  <!-- Badges -->
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"/>
+  <img src="https://img.shields.io/badge/FastAPI-005571?style=flat-square&logo=fastapi" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white" alt="Streamlit"/>
+  <img src="https://img.shields.io/badge/LlamaIndex-8A2BE2?style=flat-square&logo=linux&logoColor=white" alt="LlamaIndex"/>
+  <img src="https://img.shields.io/badge/LangChain-121212?style=flat-square&logo=chainlink&logoColor=white" alt="LangChain"/>
+  <img src="https://img.shields.io/badge/ChromaDB-FF69B4?style=flat-square&logo=database&logoColor=white" alt="ChromaDB"/>
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker"/>
+  <img src="https://img.shields.io/badge/Azure-0078D4?style=flat-square&logo=microsoft-azure&logoColor=white" alt="Azure"/>
+</div>
 
----
+<br/>
 
-# Traditional Rag Architecture
-<img width="2000" height="1126" alt="image" src="https://github.com/user-attachments/assets/5e2f7f60-50ff-43e1-9a66-e0d7580c4efa" />
+## 📖 System Overview
 
-# 🏗️ Architecture Overview
+This project implements a highly structured, conversational Question & Answer system grounded strictly in user-provided PDF or text documents. 
 
-This system answers user questions using only the information found in a set of provided PDF documents. The process consists of:
+**The Problem Solved:**
+Large Language Models inherently hallucinate or answer from their generalized pre-training data. In enterprise environments (legal, medical, internal HR policies), an AI must **only** answer based on the exact documents provided, or admit it does not know.
 
-- PDF/TXT loading through LlamaIndex, with a safe extracted-text fallback
-- LlamaIndex node parsing/chunking
-- LlamaIndex indexing into isolated ChromaDB collections
-- Conversational query rewriting for ambiguous pronouns
-- LlamaIndex retrieval and Cross-Encoder precision reranking
-- LangChain prompt construction and OpenRouter LLM orchestration
-- LLM streaming strictly over retrieved chunks
-
-## System Architecture
-
-```mermaid
-flowchart TD
-    A[User Query] 
-        --> B[Query Rewrite]
-        --> C[LlamaIndex Retriever]
-        --> D[ChromaDB Session Collection]
-        --> E[Top-K Relevant Chunks]
-        --> F[Cross-Encoder Reranker]
-        --> G[LangChain Prompt Template]
-        --> H[OpenRouter LLM openai/gpt-oss-120b:free]
-        --> I[Streaming Answer + Source Attribution]
-```
-
-> **Key Principle:**  
-> The LLM *never* answers from its own internal knowledge. Answers are always grounded in the retrieved document context.
+**Why Grounded RAG Matters:**
+Retrieval-Augmented Generation (RAG) solves this by retrieving the exact paragraphs relevant to a query and forcing the LLM to read them before answering. This system is engineered specifically to prevent hallucinations via strict prompt engineering, isolated vector storage, and an automated evaluation pipeline that mathematically scores the "Faithfulness" of the AI's output.
 
 ---
 
-# 🔄 Workflow Diagram
+## 🔗 Live Demo / Endpoints
 
-This step-by-step workflow visualizes the dual upload and chat pipeline:
+| Service | Status | Endpoint / URL |
+|---------|--------|----------------|
+| **Frontend App** | 🟢 Live | `https://conversation-rag.streamlit.app/` |
+| **Backend API** | 🟢 Live | `rag-backend-student-d7bqgvbxhuacaac2.southindia-01.azurewebsites.net` |
+| **Swagger Docs** | 🟢 Live | `https://rag-backend-student-d7bqgvbxhuacaac2.southindia-01.azurewebsites.net/docs` |
+
+---
+
+## 🌟 Highlights
+
+* **Deployment**: Fully deployed to Azure Web Apps.
+* **Hybrid Orchestration (LlamaIndex + LangChain)**: Uses LlamaIndex for superior data ingestion/chunking, and LangChain for highly controllable streaming prompt orchestration.
+* **Cross-Encoder Reranking Pipeline**: Achieves near-perfect retrieval precision by re-evaluating L2-distance vector similarities using a dense HuggingFace Cross-Encoder.
+* **Streaming Architecture**: Instantaneous UI responsiveness via `httpx.stream`, streaming generated tokens word-by-word with zero blocking.
+* **LLM-as-a-Judge Evaluation Automation**: Completely native mathematical evaluation pipeline capturing `Faithfulness` and `Answer Relevancy` without relying on expensive, paid APIs.
+* **Dynamic ChromaDB Session Isolation**: Automatically provisions isolated vector collections per user session, guaranteeing strict document access boundaries and preventing context bleeding.
+
+---
+
+## 🏛️ System Architecture
+
+The overarching design philosophy of this system is the strict separation of concerns.
+
+![System Architecture](docs/architure.png)
+*Caption: The dual-phase architecture illustrating the isolated Document Upload Pipeline vs the Conversational Chat Pipeline.*
+
+### High-Level Architecture Flowchart
+
+
+<img width="1000" height="500" alt="image" src="https://github.com/user-attachments/assets/5e2f7f60-50ff-43e1-9a66-e0d7580c4efa" />
+
+
+### Document Upload And  Question-Answer Flow (Sequence Diagram) 
 
 ```mermaid
+
 flowchart TD
-    S[Upload PDF] 
+
+    S[Load PDF Documents] 
         --> T[Extract Text & Metadata]
-        --> U[LlamaIndex Loader + Node Parser]
-        --> V[LlamaIndex Embedding Index]
-        --> W[Store in Isolated ChromaDB Collection]
-    X[User Chat Message] 
-        --> Y[Rewrite Query using Memory]
-        --> Z[LlamaIndex Retrieve Similar Chunks]
-        --> AA[Rescore with Cross-Encoder]
-        --> AB[LangChain + OpenRouter Stream Answer]
-        --> AC[Return Answer + Source Percents]
+        --> U[Semantic Chunking]
+        --> V[Generate Embeddings]
+        --> W[Store in Vector DB]
+
+    X[User Query] 
+        --> Y[Query Embedding]
+        --> Z[Retrieve Similar Chunks]
+        --> AA[Inject Chunks into Prompt]
+        --> AB[LLM Generates Answer]
+        --> AC[Return Answer + Source]
+```
+
+
+---
+
+## 🧬 Hybrid Architecture: LlamaIndex + LangChain
+
+Rather than relying purely on a single framework, this system heavily leverages the best parts of the two industry leaders.
+
+*   **Why LlamaIndex for Data Ingestion?** 
+    LlamaIndex possesses superior data connectors, node parsing, and hierarchical indexing capabilities. We use it strictly to handle the recursive chunking, metadata injection, and ChromaDB vector initialization.
+*   **Why LangChain for Orchestration?**
+    LangChain excels at prompt orchestration, streaming callback handlers, and LLM provider abstractions. We use it strictly to piece together the final RAG prompt and stream the HTTP payload from OpenRouter.
+
+**Engineering Benefit:** This prevents the dreaded "black-box" framework lock-in. By explicitly separating retrieval (LlamaIndex) from generation (LangChain) in our own service layer, we can instantly swap out the LLM provider or the vector database without rewriting the entire pipeline.
+
+---
+
+## 💻 Tech Stack
+
+| Category | Technology | Reasoning |
+| :--- | :--- | :--- |
+| **Backend** | Python 3.11, FastAPI, Uvicorn | Async capability, auto-generated Swagger UI, Pydantic validation. |
+| **Frontend** | Streamlit, httpx | Rapid UI iteration, native HTTP streaming support. |
+| **Retrieval** | LlamaIndex, Sentence-Transformers | Robust node parsing; `all-MiniLM-L6-v2` is extremely fast. |
+| **Reranking** | Cross-Encoders | `ms-marco-MiniLM-L-6-v2` fixes the precision limits of standard L2 vector search. |
+| **Vector DB** | ChromaDB | Embedded, serverless, fast persistent local storage. |
+| **LLM Provider** | OpenRouter (`gpt-oss-120b:free`) | Unmatched cost-to-performance ratio for open-source 120B models. |
+| **Deployment** | Docker, Docker-Compose, Azure | Standardized environments preventing dependency drift. |
+| **Evaluation** | Native LLM-as-a-Judge | Replicates standard RAG evaluation libraries without paid OpenAI API costs. |
+
+---
+
+## 🧠 Why This Architecture? (Engineering Decisions)
+
+*   **Recursive Chunking (`chunk_size=800`, `overlap=120`)**: Standard splitting fragments paragraphs. Recursive chunking gracefully splits by double newlines, then single newlines, ensuring contextual thoughts stay inside a single chunk.
+*   **Cross-Encoder Reranking**: Standard L2 distance vector search is "dumb" (it misses semantic context). By retrieving a wide net of 6 chunks and running them through a heavy Cross-Encoder to trim down to the best 3, we achieve near-perfect precision before hitting the LLM context window.
+*   **ChromaDB Session Isolation**: Instead of a massive multi-tenant database using metadata filters (which slow down indexing), the `vector_store_service.py` provisions a totally isolated SQLite collection per user session (`session_{uuid}`).
+*   **FastAPI + Streamlit Separation**: Tight-coupling the UI to the backend creates monoliths. Exposing a pure REST API allows future migration to React/Next.js seamlessly.
+
+---
+
+
+
+## 🗂️ Project Structure
+
+The codebase is organized using strict Domain-Driven Design (DDD) principles:
+
+```text
+Conversation-Rag/
+├── backend/
+│   ├── config/          # Pydantic environment loaders (settings.py)
+│   ├── routes/          # FastAPI API endpoint controllers (chat.py, process.py, etc.)
+│   ├── schemas/         # Pydantic models acting as strict data contracts
+│   ├── services/        # Stateful Business Logic (chunking, embedding, reranking)
+│   ├── utils/           # Stateless Helpers (file_handling, extraction)
+│   └── main.py          # FastAPI application initialization
+├── evaluation/          # Automated metric reports and query datasets
+├── frontend/            # Streamlit UI logic and HTTPx client streaming
+├── docs/                # Architecture diagrams and deep-dive notes
+├── docker-compose.yml   # Multi-container orchestration
+├── Dockerfile           # FastAPI Backend containerization
+├── Dockerfile.frontend  # Streamlit Frontend containerization
+└── requirements.txt     # Python dependencies
 ```
 
 ---
 
-# 📦 Project Structure & File Responsibilities
+## 🚀 Features Deep Dive
 
-| File / Folder                        | Purpose                                                        |
-|--------------------------------------|----------------------------------------------------------------|
-| `.env`                               | Stores OpenRouter API token                                    |
-| `requirements.txt`                   | Lists required Python dependencies                             |
-| `backend/config/settings.py`         | Pydantic environment loaders and configuration                 |
-| `backend/routes/`                    | FastAPI endpoint controllers (chat, process, upload)           |
-| `backend/services/llama_index_service.py`| LlamaIndex loading, node parsing, Chroma indexing, and retrieval |
-| `backend/services/chunking_service.py`| Splits documents into semantically meaningful chunks           |
-| `backend/services/embedding_service.py`| Embedding model loader and semantic generation              |
-| `backend/services/retrieval_service.py`| Retrieval adapter: LlamaIndex first, legacy fallback if enabled |
-| `backend/services/rerank_service.py` | Rescores chunks using Cross-Encoders                         |
-| `backend/services/prompt_service.py` | LangChain prompt template adapter with legacy formatting fallback |
-| `backend/services/llm_service.py`    | LangChain OpenRouter streaming, with OpenAI SDK fallback        |
-| `backend/utils/evaluation.py`        | Native LLM-as-a-judge strict grading prompts                   |
-| `frontend/app.py`                    | Streamlit application entry point and chat UI                  |
+*   **End-to-End Streaming**: Responses aren't batched; tokens are yielded asynchronously via `httpx.iter_lines()` causing the UI to feel instantaneous.
+*   **Conversational Memory**: The backend maintains a rolling window (default `memory_max_turns: 5`) of the user's conversation.
+*   **Query Rewriting**: If a user says "Tell me more about it", the rewrite service uses the memory window to convert the prompt to "Tell me more about the loan approval policy" *before* hitting the vector database.
+*   **Clear Source Attribution**: Every response includes a dropdown displaying the exact chunk index, source filename, and precision rerank score.
 
 ---
 
-# 📂 .env
+## 🎨 Frontend UI Showcase
 
-This file stores your OpenRouter API token, required for accessing hosted LLMs.
+![Frontend UI](docs/frontend_ui.png)
+*Caption: The Streamlit chat interface showcasing real-time streaming, chat history, and embedded metadata source expanders.*
 
-```env
-OPENROUTER_API_KEY=sk-or-v1-...
-RAG_ENGINE=llamaindex
-LLM_ORCHESTRATION=langchain
-API_BASE_URL=http://127.0.0.1:8000
+The UI abstracts away the massive backend complexity. Users simply upload a document, and the chat interface unlocks. 
+
+---
+
+## 📊 Evaluation Dashboard & LLM-as-a-Judge
+
+![Evaluation](docs/evaluation.png)
+*Caption: Example output of the JSON-based evaluation metrics calculating semantic grounding.*
+
+### Evaluation Pipeline Flow
+```mermaid
+flowchart LR
+    A[Test Dataset] --> B[Generate Answer]
+    B --> C{Native LLM Judge}
+    C -->|Output JSON| D[Faithfulness Score: 0.0-1.0]
+    C -->|Output JSON| E[Answer Relevancy Score: 0.0-1.0]
+    D --> F[(evaluation_report.json)]
+    E --> F
 ```
 
-- **Purpose:** Securely store credentials.
-- **Usage:** Loaded by `pydantic-settings` in `backend/config/settings.py`, and by the Streamlit frontend for `API_BASE_URL`.
+Instead of using the paid `ragas` library, we implemented a **Native LLM-as-a-Judge**. 
+A strictly engineered zero-shot JSON prompt forces the 120B parameter model to read its own output alongside the retrieved context and mathematically grade itself:
+*   **Faithfulness (0.0 to 1.0):** Is the answer fully supported by the retrieved text?
+*   **Answer Relevancy (0.0 to 1.0):** Does the answer actually address the user's question?
 
 ---
 
-# ⚙️ requirements.txt
+## 🔌 API Documentation
 
-Lists all dependencies needed to run the system.
+The backend is fully documented via Swagger UI (`/docs`).
 
-```txt
-fastapi
-uvicorn
-streamlit
-pydantic
-pydantic-settings
-python-multipart
-pypdf
-langchain-text-splitters
-chromadb
-sentence-transformers
-huggingface-hub
-httpx
-```
-
-- **Purpose:** Declarative environment setup.
-- **Notable Packages:**
-  - `fastapi` & `streamlit`: Core API and UI frameworks.
-  - `sentence-transformers`: For embeddings and Cross-Encoder reranking.
-  - `chromadb`: Fast vector DB with metadata support.
-  - `pypdf`: Lightweight offline PDF extraction.
+| Endpoint | Method | Purpose |
+| :--- | :--- | :--- |
+| `/upload` | POST | Accepts PDF/TXT, extracts raw text, provisions UUID session. |
+| `/process/{session_id}` | POST | Triggers LlamaIndex chunking, embedding, and ChromaDB indexing. |
+| `/chat` | POST | Triggers rewrite, retrieval, reranking, and streams LLM response. |
+| `/evaluate/{session_id}`| POST | Runs the LLM-as-a-judge suite across a dataset of test queries. |
+| `/health` | GET | Validates Docker container liveness. |
 
 ---
 
-# ✂️ backend/services/chunking_service.py
 
-Provides semantic chunking logic using LangChain's text splitters.
-
-```python
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-def chunk_document(text: str, session_id: str) -> List[ChunkMetadata]:
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50,
-        separators=["\n\n", "\n", " ", ""]
-    )
-    # Splits while preserving paragraph boundaries
-```
-
-- **Purpose:** Splits documents into semantically meaningful text chunks.
-- **Why recursive chunking?**
-  - Preserves meaning across sentence and paragraph boundaries.
-  - Reduces chances of splitting explanations or tables.
 
 ---
 
-# 🧬 backend/services/embedding_service.py
+## 🛡️ Security & Reliability
 
-Loads the embedding model for ChromaDB vector generation.
-
-```python
-from sentence_transformers import SentenceTransformer
-
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-def generate_embeddings(chunks: List[str]) -> List[List[float]]:
-    """
-    Generate dense vectors for document chunks.
-    """
-    return model.encode(chunks).tolist()
-```
-
-- **Purpose:** 
-  - Loads the fast `all-MiniLM-L6-v2` transformer for semantic embeddings.
-  - Converts text into 384-dimensional arrays for similarity search.
+*   **Strict Hallucination Guardrails**: If the Cross-Encoder drops all chunks (i.e. the document does not contain the answer), the fallback `_mock_generate` explicitly interrupts the LLM and outputs `"I could not find enough information in the document."`
+*   **Session Isolation**: By dynamically assigning `get_collection_name(session_id)`, a user's query mathematically cannot query vectors belonging to a different session's PDF.
+*   **Environment Variable Protection**: All secrets (OpenRouter API keys) are strictly managed via `pydantic-settings` preventing accidental leakage.
 
 ---
 
-# 🎯 backend/services/rerank_service.py
+## 📈 Scalability & Future Improvements
 
-Applies a Cross-Encoder to drastically improve retrieval precision.
-
-```python
-from sentence_transformers import CrossEncoder
-
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-
-def rerank_chunks(query: str, chunks: List[RetrievedChunk]) -> List[RetrievedChunk]:
-    # Calculates exact relevance between the query and each individual chunk
-    scores = reranker.predict([[query, c.text] for c in chunks])
-    # Returns sorted chunks
-```
-
-- **Purpose:** 
-  - Overcomes the limitations of standard L2 Distance vector search.
-  - Acts as a highly accurate filter before passing context to the LLM.
+To take this from enterprise-grade to massive scale, the following architectural steps are planned:
+1.  **Hybrid Retrieval (BM25 + Vector)**: Combining dense vector search with sparse keyword search to handle highly specific noun queries (e.g., serial numbers).
+2.  **Redis Caching**: Caching semantic query embeddings to completely bypass the LLM for identical repeated questions.
+3.  **Kubernetes Deployment**: Replacing Docker Compose with K8s Deployments, scaling the FastAPI pods based on CPU thresholds during heavy embedding spikes.
+4.  **Agentic RAG**: Upgrading LangChain orchestration to use Tools, allowing the LLM to decide whether to query a database, search the web, or read a PDF.
 
 ---
 
-# 🧠 backend/services/llm_service.py
+## 💡 Lessons Learned
 
-Interacts with OpenRouter for streaming generation.
-
-```python
-import httpx
-import json
-
-def generate_answer_stream(prompt: str):
-    """
-    Yields tokens as they stream in from the OpenRouter API.
-    """
-    with httpx.stream("POST", url, headers=headers, json=payload) as r:
-        for chunk in r.iter_lines():
-            # Parse JSON and yield raw text tokens
-            yield token
-```
-
-- **Purpose:** 
-  - Generates natural language answers based on retrieved context.
-  - Streams tokens instantly for a highly responsive UI.
-- **Notable:** 
-  - Connects to the `openai/gpt-oss-120b:free` model.
-  - Falls back to deterministic local mock generation if keys are missing.
+*   **RAG Tuning is an Art**: Vector databases are not magic. Tuning `chunk_size` relative to your embedding model's optimal token window is critical. Pushing 1000-word chunks into a model trained on 512 tokens destroys retrieval quality.
+*   **Orchestration Frameworks**: Frameworks like LangChain are excellent for rapid prototyping, but can obscure control flow. Wrapping them tightly in isolated service files prevents framework-lock-in.
+*   **Cloud Infrastructure Nuances**: What works in a local Docker container (SQLite) fails in the cloud due to fundamental network drive locking behaviors. Infrastructure knowledge is just as important as AI knowledge.
 
 ---
 
-# 🚀 frontend/app.py
+## 🎓 Key Engineering Takeaways
 
-Entry point for the Streamlit UI application.
-
-```python
-import streamlit as st
-import httpx
-
-st.title("Conversational RAG Assistant")
-
-if prompt := st.chat_input("Ask a question about your document"):
-    st.chat_message("user").write(prompt)
-    
-    with st.chat_message("assistant"):
-        answer_placeholder = st.empty()
-        # Streams the answer word-by-word via HTTPX
-        for chunk in httpx.stream("POST", "http://127.0.0.1:8000/chat"):
-            answer_placeholder.markdown(full_answer)
-```
-
-- **Purpose:** 
-  - Provides a beautiful, interactive web UI.
-  - Handles real-time HTTP streaming to render responses word-by-word.
+1.  **Cross-Encoders act as the ultimate filter.** They are computationally heavy, but running them strictly over a pre-filtered L2 top-6 set provides insane accuracy for negligible latency cost.
+2.  **Separation of Concerns enables Agility.** By separating `retrieval_service.py` from `prompt_service.py`, we can radically change how we fetch data without breaking how we instruct the LLM.
+3.  **Automated Evaluation is Non-Negotiable.** You cannot improve what you cannot measure. The Native LLM Judge ensures that every prompt tweak is mathematically validated against a golden dataset before merging to production.
 
 ---
 
-# 🖥️ API Endpoints
+## 🤝 Professional Conclusion
 
-The system is fully decoupled. The backend operates as a pure REST API.
+This project demonstrates what happens when AI prototyping graduates into **Production Software Engineering**. 
+By refusing to rely on "magic" one-liner abstractions and instead building a deeply decoupled, mathematically evaluated, and strictly containerized microservices architecture, this RAG engine ensures that AI responses are not just intelligent—but **verifiable, fast, and completely secure.**
 
-## /chat (POST) – Ask a Question
+Thank you for exploring the architecture.
 
-### "Chat Pipeline" Endpoint (POST /chat)
-
-```api
-{
-    "title": "Ask a Question (Streaming)",
-    "description": "Submit a question to the RAG system. Returns a streaming response yielding tokens, followed by a __METADATA__ separator with sources.",
-    "method": "POST",
-    "baseUrl": "http://127.0.0.1:8000",
-    "endpoint": "/chat",
-    "headers": [
-        {
-            "key": "Content-Type",
-            "value": "application/json",
-            "required": true
-        }
-    ],
-    "bodyType": "json",
-    "requestBody": "{\n  \"session_id\": \"uuid-1234\",\n  \"query\": \"What is the loan approval process?\"\n}",
-    "responses": {
-        "200": {
-            "description": "Streaming Chunked Response",
-            "body": "The loan approval process involves... \n__METADATA__\n{\"sources\": [{\"chunk_id\": \"1\", \"relevance_score\": 5.4, \"source_file\": \"policy.pdf\"}]}"
-        }
-    }
-}
-```
-
----
-
-# 🧩 Key Engineering Takeaways
-
-```card
-{
-  "title": "Cross-Encoder Reranking",
-  "content": "Standard vector search misses context. By fetching 6 chunks and applying a Cross-Encoder, we achieve near-perfect retrieval precision."
-}
-```
-
-```card
-{
-  "title": "Native LLM-as-a-Judge",
-  "content": "We bypassed expensive evaluation frameworks by writing a strict zero-shot JSON prompt that forces the 120B LLM to grade its own Faithfulness mathematically."
-}
-```
-
-```card
-{
-  "title": "Clean Architecture",
-  "content": "Strictly separating stateless utils/ from stateful services/ ensures the codebase is highly testable, modular, and production-ready."
-}
-```
-
----
-
-# 📝 Summary
-
-This project demonstrates a production-aligned design for document-grounded question answering:
-
-- Recursive chunking for high retrieval quality
-- Isolated ChromaDB collections per session
-- Cross-Encoder rescoring for maximum precision
-- LLM reasoning strictly over provided context with live streaming
-- Native, automated evaluation dashboards
-
-All engineering decisions were made based on real-world trade-offs for reliability, transparency, and simplicity.
-
----
-
-# 🎓 Further Reading
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [ChromaDB Documentation](https://docs.trychroma.com/)
-- [Sentence Transformers](https://www.sbert.net/)
-- [Streamlit Chat Elements](https://docs.streamlit.io/library/api-reference/chat)
-
----
-
-# 🚫 Failure Modes
-
-**Expected Failure:**  
-If a query is out-of-domain (e.g., "Explain quantum entanglement" when not present in any PDF), the system safely returns:
-
-> "I could not find enough information in the document."
-
-This confirms that the system is robust against hallucination and only answers from the provided knowledge base. The Native LLM Judge will automatically grade this refusal with a `1.0` for Faithfulness.
+<div align="center">
+  <p><i>Architected for Scale. Engineered for Precision.</i></p>
+</div>
