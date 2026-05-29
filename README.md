@@ -71,7 +71,7 @@ flowchart TD
 
     S[Load PDF Documents] 
         --> T[Extract Text & Metadata]
-        --> U[Semantic Chunking]
+        --> U[Recurssive Chunking]
         --> V[Generate Embeddings]
         --> W[Store in Vector DB]
 
